@@ -8,8 +8,8 @@ OpenShift 4.17
 
 The following operators must be installed:
 - OpenShift Data Foundation Operator
-- - May be necessary to create a StorageSystem
-- - StorageSystem takes several minutes to become available
+  - May be necessary to create a StorageSystem
+  - StorageSystem takes several minutes to become available
 - Red Hat OpenShift Logging Operator
 - Loki Operator
 - Cluster Observability Operator
@@ -39,12 +39,6 @@ BUCKET_NAME="$(oc get objectbucketclaim obc-loki -n openshift-logging -o jsonpat
 - Creation of a secret with storage credentials
 
 ```
-oc apply -f 02-loki-s3-secret.yaml
-```
-
-- LokiStack deployment
-
-```
 cat <<EOF | oc apply -f - 
 apiVersion: v1
 kind: Secret
@@ -61,10 +55,16 @@ stringData:
 EOF
 ```
 
+- LokiStack deployment
+
+```
+oc apply -f 02-loki-stack.yaml
+```
+
 - UI Plugin configuration for log visualization
 
 ```
-oc apply -f 04-ui-plugin.yaml
+oc apply -f 03-ui-plugin.yaml
 ```
 
 ### 3. Collector Configuration
@@ -87,9 +87,11 @@ oc adm policy add-cluster-role-to-user collect-infrastructure-logs -z collector 
 Create the Cluster Log Forwarder configuration with the Service Account created before.
 
 ```
-oc apply -f 05-cluster-log-forwarder.yaml
+oc apply -f 04-cluster-log-forwarder.yaml
 ```
 
 ## Usage
 
 After configuration, audit logs can be viewed through the OpenShift Console in the Observability section. To view application and infrastructure logs, uncomment lines 26 and 27 in the ClusterLogForwarder.
+
+![Audit logs](assets/images/audit-logs.png)
