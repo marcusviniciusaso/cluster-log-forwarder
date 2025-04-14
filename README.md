@@ -4,9 +4,13 @@ This document describes the process of configuring ClusterLogForwarder to forwar
 
 ## Prerequisites
 
+OpenShift 4.17
+
 The following operators must be installed:
-- ODF Operator
-- OpenShift Logging Operator
+- OpenShift Data Foundation Operator
+- - May be necessary to create a StorageSystem
+- - StorageSystem takes several minutes to become available
+- Red Hat OpenShift Logging Operator
 - Loki Operator
 - Cluster Observability Operator
 
@@ -20,7 +24,7 @@ First, we create an ObjectBucketClaim to store the logs:
 
 To create the ObjectBucketClaim:
 ```
-oc apply -f bucket-claim.yaml
+oc apply -f 01-bucket-claim.yaml
 ```
 
 Set up access variables:
@@ -33,8 +37,35 @@ BUCKET_NAME="$(oc get objectbucketclaim obc-loki -n openshift-logging -o jsonpat
 ### 2. Loki Configuration
 
 - Creation of a secret with storage credentials
+
+```
+oc apply -f 02-loki-s3-secret.yaml
+```
+
 - LokiStack deployment
+
+```
+cat <<EOF | oc apply -f - 
+apiVersion: v1
+kind: Secret
+metadata:
+  name: logging-loki-s3
+  namespace: openshift-logging
+type: Opaque
+stringData:
+    bucketnames: "${BUCKET_NAME}"
+    endpoint: "https://s3.openshift-storage.svc"
+    access_key_id: "${AWS_ACCESS_KEY_ID}"
+    access_key_secret: "${AWS_SECRET_ACCESS_KEY}"
+    region: "us-east-1"
+EOF
+```
+
 - UI Plugin configuration for log visualization
+
+```
+oc apply -f 04-ui-plugin.yaml
+```
 
 ### 3. Collector Configuration
 
@@ -51,6 +82,14 @@ oc adm policy add-cluster-role-to-user collect-audit-logs -z collector -n opensh
 oc adm policy add-cluster-role-to-user collect-infrastructure-logs -z collector -n openshift-logging
 ```
 
+### 4. Cluster Log Forwarder Configuration
+
+Create the Cluster Log Forwarder configuration with the Service Account created before.
+
+```
+oc apply -f 05-cluster-log-forwarder.yaml
+```
+
 ## Usage
 
-After configuration, logs can be viewed through the OpenShift Console in the Observability section.
+After configuration, audit logs can be viewed through the OpenShift Console in the Observability section. To view application and infrastructure logs, uncomment lines 26 and 27 in the ClusterLogForwarder.

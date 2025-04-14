@@ -23,8 +23,8 @@ spec:
   pipelines:
   - name: default-logstore
     inputRefs:
-    - application
-    - infrastructure
+    #- application
+    #- infrastructure
     - audit
     outputRefs:
     - default-lokistack
